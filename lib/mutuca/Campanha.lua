@@ -2,6 +2,7 @@ local Class     = require('arken.oop.Class')
 local Gerador   = require('mutuca.Gerador')
 local Processo  = require('mutuca.Processo')
 local Relatorio = require('mutuca.Relatorio')
+local Sombra    = require('mutuca.Sombra')
 
 local Campanha = Class.new("mutuca.Campanha")
 
@@ -15,6 +16,22 @@ Campanha.limiteMinimo = 2
 function Campanha.pastaDeTestes(alvo)
   local pasta = alvo:gsub('^%./', ''):gsub('%.lua$', ''):gsub('^app/', '')
   return 'tests/' .. pasta
+end
+
+-------------------------------------------------------------------------------
+-- CAMINHO RELATIVO
+-------------------------------------------------------------------------------
+
+function Campanha.caminhoRelativo(caminho)
+  local raiz = os.pwd() .. '/'
+  if caminho:sub(1, #raiz) == raiz then
+    return caminho:sub(#raiz + 1)
+  end
+  if caminho:sub(1, 1) == '/' then
+    error('o arquivo precisa estar no projeto atual: ' .. caminho, 0)
+  end
+  local relativo = caminho:gsub('^%./', '')
+  return relativo
 end
 
 -------------------------------------------------------------------------------
@@ -64,6 +81,7 @@ function Campanha:validar()
   if self.alvo == nil then
     error('uso: mutuca arquivo.lua [--testes pasta] [--sem-isolamento]', 0)
   end
+  self.alvo = Campanha.caminhoRelativo(self.alvo)
   if not os.exists(self.alvo) then
     error('arquivo não encontrado: ' .. self.alvo, 0)
   end
@@ -96,17 +114,6 @@ function Campanha.validarBase(base)
   if not base.carregado then
     error('os testes não carregaram o arquivo alvo por require', 0)
   end
-end
-
--------------------------------------------------------------------------------
--- LIMPAR
--------------------------------------------------------------------------------
-
-function Campanha.limpar(pasta)
-  os.remove(pasta .. '/fonte.lua')
-  os.remove(pasta .. '/params.json')
-  os.remove(pasta .. '/resultado.json')
-  os.rmdir(pasta)
 end
 
 -------------------------------------------------------------------------------
@@ -143,21 +150,20 @@ end
 function Campanha:executar()
   self:validar()
 
-  local pasta = os.tmpname()
-  os.remove(pasta)
-  os.mkdir(pasta)
+  Sombra.removerAbandonadas()
 
+  local sombra = Sombra.criar(os.pwd())
   local processo = Processo.new{
     raiz    = self.raiz,
-    alvo    = os.abspath(self.alvo),
+    sombra  = sombra,
+    alvo    = self.alvo,
     testes  = Campanha.listarTestes(self.testes),
-    pasta   = pasta,
     isolado = self.isolado,
     limite  = Campanha.limiteBase
   }
 
   local status, retorno = pcall(self.mutar, self, processo, os.read(self.alvo))
-  Campanha.limpar(pasta)
+  sombra:remover()
   if not status then
     error(retorno, 0)
   end

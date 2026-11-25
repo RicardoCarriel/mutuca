@@ -6,7 +6,7 @@ local Processo = Class.new("mutuca.Processo")
 Processo.sandbox = '/usr/bin/sandbox-exec'
 Processo.alarme  = 'alarm shift; exec @ARGV or exit 127'
 
-Processo.perfil = '(version 1)(allow default)(deny network*)(deny file-write* (require-not (require-any '
+Processo.perfilBase = '(version 1)(allow default)(deny network*)(deny file-write* (require-not (require-any '
   .. '(subpath "/private/tmp") (subpath "/private/var/folders") (literal "/dev/null"))))'
 
 -------------------------------------------------------------------------------
@@ -16,6 +16,15 @@ Processo.perfil = '(version 1)(allow default)(deny network*)(deny file-write* (r
 function Processo.aspas(texto)
   local escapado = texto:gsub("'", "'\\''")
   return "'" .. escapado .. "'"
+end
+
+-------------------------------------------------------------------------------
+-- PERFIL
+-------------------------------------------------------------------------------
+
+function Processo:perfil()
+  local projeto = self.sombra.projeto:gsub('[\\"]', '\\%0')
+  return Processo.perfilBase .. '(deny file-write* (subpath "' .. projeto .. '"))'
 end
 
 -------------------------------------------------------------------------------
@@ -31,12 +40,12 @@ end
 -------------------------------------------------------------------------------
 
 function Processo:comando()
-  local partes = { 'exec env ARKEN_ENV=test perl -e', Processo.aspas(Processo.alarme), tostring(self.limite) }
+  local partes = { 'cd', Processo.aspas(self.sombra.raiz), '&& exec env ARKEN_ENV=test perl -e', Processo.aspas(Processo.alarme), tostring(self.limite) }
   if self.isolado then
-    table.insert(partes, Processo.sandbox .. ' -p ' .. Processo.aspas(Processo.perfil))
+    table.insert(partes, Processo.sandbox .. ' -p ' .. Processo.aspas(self:perfil()))
   end
   table.insert(partes, 'arken ' .. Processo.aspas(self.raiz .. '/script/executar.lua'))
-  table.insert(partes, Processo.aspas(self.pasta .. '/params.json'))
+  table.insert(partes, Processo.aspas(self.sombra.pasta .. '/params.json'))
   table.insert(partes, '> /dev/null 2>&1')
   return table.concat(partes, ' ')
 end
@@ -46,7 +55,7 @@ end
 -------------------------------------------------------------------------------
 
 function Processo:gravar(nome, conteudo)
-  local arquivo = assert(io.open(self.pasta .. '/' .. nome, 'w'))
+  local arquivo = assert(io.open(self.sombra.pasta .. '/' .. nome, 'w'))
   arquivo:write(conteudo)
   arquivo:close()
 end
@@ -72,14 +81,15 @@ end
 -------------------------------------------------------------------------------
 
 function Processo:executar(fonte, cobertura)
-  local saida = self.pasta .. '/resultado.json'
+  local saida = self.sombra.pasta .. '/resultado.json'
 
   os.remove(saida)
+  self.sombra:renovarTmp()
   self:gravar('fonte.lua', fonte)
   self:gravar('params.json', json.encode{
     alvo      = self.alvo,
     testes    = self.testes,
-    fonte     = self.pasta .. '/fonte.lua',
+    fonte     = self.sombra.pasta .. '/fonte.lua',
     saida     = saida,
     cobertura = cobertura
   })
