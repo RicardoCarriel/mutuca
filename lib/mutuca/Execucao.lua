@@ -79,6 +79,7 @@ function Execucao:executar()
   local resultado = {}
 
   Execucao.atual = self
+  self.alvo      = os.abspath(self.alvo)
   self.contagem  = { ok = 0, failure = 0, pending = 0 }
   self.carregado = false
   test.output    = Execucao.silenciar

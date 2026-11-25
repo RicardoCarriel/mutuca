@@ -53,6 +53,10 @@ isso cada um roda em processo próprio, com `ARKEN_ENV=test`, sem rede (nem
 local) e sem escrita fora das pastas temporárias. Os arquivos do projeto não são
 alterados: o código mutado é injetado no `require`.
 
+O processo roda numa pasta com links para o projeto e um `tmp/` descartável, que
+repete só as pastas do `tmp/` original e é refeito a cada mutante. Testes que
+gravam em outra pasta do projeto falham já sem mutação.
+
 O isolamento usa o `sandbox-exec` do macOS. Sem ele, o Mutuca se recusa a rodar.
 `--sem-isolamento` desliga essa proteção: use só se souber que o alvo e os testes
 não têm efeito externo.
