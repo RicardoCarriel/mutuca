@@ -44,7 +44,9 @@ lib/Frete.lua:7 [vivo]
 | `S` | Vivo em linha que nenhum teste executa |
 
 Nem todo sobrevivente é falha dos testes: alguns mutantes são equivalentes ao
-código original. Para ignorar uma linha, termine-a com `-- mutuca: ignora`.
+código original. O nível em `error({...}, 0)` já é ignorado, porque não tem
+efeito quando o erro é uma tabela. Para ignorar uma linha, termine-a com
+`-- mutuca: ignora`.
 
 ## Isolamento
 

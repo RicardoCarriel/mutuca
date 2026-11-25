@@ -46,4 +46,40 @@ test['deve exigir que o marcador esteja em comentario'] = function()
   assert(mutantes[1].novo == '2', mutantes[1].novo)
 end
 
+test['deve ignorar o nivel do error com tabela'] = function()
+  local mutantes = Gerador.new{ fonte = "error({ a = 'x' }, 0)" }:mutantes()
+  assert(#mutantes == 0, #mutantes)
+  mutantes = Gerador.new{ fonte = "error ( { a = { b = 1 } } , -- nivel\n 0 )" }:mutantes()
+  assert(#mutantes == 1, #mutantes)
+  assert(mutantes[1].original == '1', mutantes[1].original)
+end
+
+test['deve manter o nivel do error com texto ou variavel'] = function()
+  local mutantes = Gerador.new{ fonte = "error('x', 0)" }:mutantes()
+  assert(#mutantes == 1, #mutantes)
+  mutantes = Gerador.new{ fonte = 'error(resultado, 0)' }:mutantes()
+  assert(#mutantes == 1, #mutantes)
+  mutantes = Gerador.new{ fonte = 'error(f{}, 0)' }:mutantes()
+  assert(#mutantes == 1, #mutantes)
+end
+
+test['deve manter o numero em chamada que nao e o error global'] = function()
+  local mutantes = Gerador.new{ fonte = 'log.error({}, 0)' }:mutantes()
+  assert(#mutantes == 1, #mutantes)
+  mutantes = Gerador.new{ fonte = 'log:error({}, 0)' }:mutantes()
+  assert(#mutantes == 1, #mutantes)
+  mutantes = Gerador.new{ fonte = 'aviso({}, 0)' }:mutantes()
+  assert(#mutantes == 1, #mutantes)
+end
+
+test['deve manter expressao no nivel do error'] = function()
+  local mutantes = Gerador.new{ fonte = 'error({}, 1 + n)' }:mutantes()
+  assert(#mutantes == 2, #mutantes)
+end
+
+test['deve aceitar error com tabela e sem nivel'] = function()
+  local mutantes = Gerador.new{ fonte = 'error({})' }:mutantes()
+  assert(#mutantes == 0, #mutantes)
+end
+
 return test
