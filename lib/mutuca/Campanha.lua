@@ -66,6 +66,23 @@ function Campanha.classificar(base, resultado, descoberta)
 end
 
 -------------------------------------------------------------------------------
+-- FILTRAR
+-------------------------------------------------------------------------------
+
+function Campanha.filtrar(mutantes, linhas)
+  if linhas == nil then
+    return mutantes
+  end
+  local lista = {}
+  for _, mutante in ipairs(mutantes) do
+    if linhas[mutante.linha] then
+      table.insert(lista, mutante)
+    end
+  end
+  return lista
+end
+
+-------------------------------------------------------------------------------
 -- LIMITE
 -------------------------------------------------------------------------------
 
@@ -79,7 +96,7 @@ end
 
 function Campanha:validar()
   if self.alvo == nil then
-    error('uso: mutuca arquivo.lua [--testes pasta] [--sem-isolamento]', 0)
+    error('uso: mutuca arquivo.lua [--testes pasta] [--sem-isolamento] ou mutuca --diff [base] [--sem-isolamento]', 0)
   end
   self.alvo = Campanha.caminhoRelativo(self.alvo)
   if not os.exists(self.alvo) then
@@ -121,6 +138,14 @@ end
 -------------------------------------------------------------------------------
 
 function Campanha:mutar(processo, fonte)
+  local mutantes, descartados = Gerador.new{ fonte = fonte }:mutantes()
+  local relatorio = Relatorio.new{ alvo = self.alvo, fonte = fonte, descartados = descartados }
+  mutantes = Campanha.filtrar(mutantes, self.linhas)
+  if #mutantes == 0 then
+    relatorio:imprimir()
+    return relatorio
+  end
+
   local descobertas = {}
   local base        = processo:executar(fonte, true)
   Campanha.validarBase(base)
@@ -133,8 +158,6 @@ function Campanha:mutar(processo, fonte)
   Campanha.validarBase(base)
   processo.limite = Campanha.limite(os.microtime() - inicio)
 
-  local mutantes, descartados = Gerador.new{ fonte = fonte }:mutantes()
-  local relatorio = Relatorio.new{ alvo = self.alvo, fonte = fonte, descartados = descartados }
   for _, mutante in ipairs(mutantes) do
     local resultado = processo:executar(mutante.fonte, false)
     relatorio:registrar(mutante, Campanha.classificar(base, resultado, descobertas[mutante.linha]))
