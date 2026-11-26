@@ -19,6 +19,17 @@ Os testes são procurados pela convenção de pastas: `lib/Frete.lua` em
 `tests/lib/Frete` e `app/models/Pedido.lua` em `tests/models/Pedido`. Para usar
 outra pasta, passe `--testes pasta` depois do arquivo.
 
+Para mutar só o que mudou na branch:
+
+```bash
+/caminho/do/mutuca/script/mutuca --diff
+/caminho/do/mutuca/script/mutuca --diff origin/main
+```
+
+A base padrão é `origin/master`. Entram as linhas alteradas desde o ponto em que
+a branch saiu da base, inclusive as que ainda não foram commitadas, e os
+arquivos novos inteiros. Só são considerados arquivos `.lua` em `lib/` e `app/`.
+
 Para experimentar:
 
 ```bash
@@ -65,7 +76,7 @@ não têm efeito externo.
 
 ## Limites atuais
 
-- Um arquivo por vez, em série.
+- Os mutantes rodam em série.
 - Sem suporte a testes que acessam banco.
 - O alvo precisa ser carregado por `require`, e não pelo `config/profile.lua`.
 - Depende de `arken`, `perl` e, para o isolamento, macOS.
